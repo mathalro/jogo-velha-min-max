@@ -83,11 +83,10 @@ int trocaJogador(int jogador) {
 
 string criaEstado(int i = -1, int j = -1, int jogador) {
 	// criar a string que representa o nosso tabuleiro
-	
-	// constroi a string atual
- 
-	if (i != -1) {
-
+	if (i == -1) {
+		// apenas pega o estado atual
+	}	 else {
+		
 	}
 
 	return "";
