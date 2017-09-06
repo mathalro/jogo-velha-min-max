@@ -16,9 +16,6 @@ struct Estado {
 	int jogador, resultado, i, j;
 	Estado() {}
 	Estado(string tab, int jogador, int resultado, int i, int j) :  tab(tab), jogador(jogador), resultado(resultado), i(i), j(j) {}
-	bool operator < (const Estado &outro) const {
-		return tab <= outro.tab;
-	}
 };
 
 const int sizeTab = 3;
@@ -26,7 +23,7 @@ const int contGanhaBola = 30, contGanhaX = 3;
 const int ganhaBola = 1, ganhaX = 2;
 const int bola = 10, xis = 1;
 
-map<pair<string, int>, Estado> utilidade;
+map<pair<int, string>, Estado> utilidade;
 
 int tab[sizeTab][sizeTab];
 /*
@@ -49,7 +46,7 @@ bool impossivelJogar() {
 int verificaGanhador() {
 	// verifica linhas e colunas
 	for (int i = 0; i < sizeTab; i++) {
-		int contLinha = 0, contColuna;
+		int contLinha = 0, contColuna = 0;
 		for (int j = 0; j < sizeTab; j++) {
 			contLinha += tab[i][j];
 			contColuna += tab[j][i];
@@ -119,24 +116,16 @@ void print() {
 /*
 	Gera os estados com uma arvore de recursao
 */
+int cont = 0;
 int constroiTree(int jogador) {
-	int resultado, iOtimo, jOtimo, estado;
+	int resultado, iOtimo, jOtimo, ganhador;
   
-	estado = verificaGanhador();
-	if (estado == ganhaBola) {
-		//cout << "O ganhou!!" << endl;
-		return 1;
-	}
-	if (estado == ganhaX) {
-		//cout << "X ganhou!!" << endl;
-		return -1;
-	}
 	if (impossivelJogar()) {
 		return 0;
 	}
 
-	string estadoAtual = criaEstado();
-	map<pair<string, int>, Estado>::iterator tmp = utilidade.find(make_pair(estadoAtual, jogador));
+	string estadoAtual = criaEstado();	
+	map<pair<int, string>, Estado>::iterator tmp = utilidade.find(make_pair(jogador, estadoAtual));
 	if (tmp != utilidade.end()) {
 		return tmp->second.resultado;
 	}
@@ -151,37 +140,49 @@ int constroiTree(int jogador) {
 		for (int j = 0; j < sizeTab; j++) {
 			if (!tab[i][j]) {
 				tab[i][j] = jogador;
+				ganhador = verificaGanhador();
 				if (jogador == xis) {
-					int val = constroiTree(trocaJogador(jogador));
-					if (resultado == -1) {
+					if (ganhador == ganhaX) {
+						resultado = 1;
 						iOtimo = i;
 						jOtimo = j;
-						resultado = val;
-					} else if (!resultado && val == 1) {
-						iOtimo = i;
-						jOtimo = j;
-						resultado = val;
+					} else {
+						int val = constroiTree(trocaJogador(jogador));
+						if (resultado == -1) {
+							iOtimo = i;
+							jOtimo = j;
+							resultado = val;
+						} else if (!resultado && val == 1) {
+							iOtimo = i;
+							jOtimo = j;
+							resultado = val;
+						}
 					}
 				} else {
-					int val = constroiTree(trocaJogador(jogador));
-					if (resultado == 1) {
+					if (ganhador == ganhaBola) {
+						resultado = -1;
 						iOtimo = i;
 						jOtimo = j;
-						resultado = val;
-				 	} else if (!resultado && val == -1) {
-						iOtimo = i;
-						jOtimo = j;
-						resultado = val;
+					} else {
+						int val = constroiTree(trocaJogador(jogador));
+						if (resultado == 1) {
+							iOtimo = i;
+							jOtimo = j;
+							resultado = val;
+					 	} else if (!resultado && val == -1) {
+							iOtimo = i;
+							jOtimo = j;
+							resultado = val;
+						}
 					}
 				}
-				constroiTree(trocaJogador(jogador));
 				tab[i][j] = 0;
 			}
 		}
 	}
 
-  string novoEstado = criaEstado(iOtimo, jOtimo, jogador);
-	utilidade.insert(make_pair(make_pair(estadoAtual, jogador), Estado(novoEstado, trocaJogador(jogador), resultado, iOtimo, jOtimo)));
+	string novoEstado = criaEstado(iOtimo, jOtimo, jogador);
+	utilidade.insert(make_pair(make_pair(jogador, estadoAtual), Estado(novoEstado, trocaJogador(jogador), resultado, iOtimo, jOtimo)));
 	return resultado;
 }
 
@@ -190,24 +191,22 @@ int jogo(int jogador){
 	int i, j, ganhador;
 	string estado;
 	while(1){
-		cout << jogador << endl;
 		print();
 		ganhador = verificaGanhador();
 		if (ganhador) return ganhador == ganhaBola ? ganhaBola : ganhaX;
 		if (impossivelJogar()) return 0;			
-		if(jogador == 1){	
+		if(jogador == bola){	
 			cout << "Escolha uma linha e uma coluna do tabuleiro (linha coluna): ";
 			cin >> i >> j;
 			tab[--i][--j] = bola;
-		}else{
+		}else {
 			estado = criaEstado();
-			map<pair<string, int>, Estado>::iterator tmp = utilidade.find(make_pair(estado, jogador));
+			map<pair<int, string>, Estado>::iterator tmp = utilidade.find(make_pair(jogador, estado));
 			int ii = tmp->second.i; 
 			int jj = tmp->second.j;
-			cout << ii << ' ' << jj << endl << estado << endl;
 			tab[ii][jj] = xis;
 		}
-		jogador = !jogador;
+		jogador = trocaJogador(jogador);
 	}
 	
 }
@@ -218,8 +217,8 @@ int main () {
 
 	memset(tab, 0, sizeof tab);
 	constroiTree(xis);
-	
-	jogo(1);
+
+	jogo(xis);
 
 	return 0;
 }
