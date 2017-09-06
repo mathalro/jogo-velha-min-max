@@ -7,16 +7,17 @@
 #include <cstring>
 #include <cstdio>
 #include <map>
+#include <unistd.h>
 
 using namespace std;
 
 struct Estado {
 	string tab;
-	int jogador;
+	int jogador, resultado, i, j;
 	Estado() {}
-	Estado(string tab, int jogador) :  tab(tab), jogador(jogador) {}
+	Estado(string tab, int jogador, int resultado, int i, int j) :  tab(tab), jogador(jogador), resultado(resultado), i(i), j(j) {}
 	bool operator < (const Estado &outro) const {
-		return jogador <= outro.jogador;
+		return tab <= outro.tab;
 	}
 };
 
@@ -25,17 +26,14 @@ const int contGanhaBola = 30, contGanhaX = 3;
 const int ganhaBola = 1, ganhaX = 2;
 const int bola = 10, xis = 1;
 
-map<Estado, Estado> utilidade;
+map<pair<string, int>, Estado> utilidade;
 
-int tab[sizeTab][sizeTab] = {{1, 1, 10},
-														 {10, 1, 1},
-														 {10, 10, 1}};
-
+int tab[sizeTab][sizeTab];
 /*
 	Verifica se nao existem mais casas para jogar
 */
 bool impossivelJogar() {
-	int cont;
+	int cont = 0;
 	for (int i = 0; i < sizeTab; i++) {
 		for (int j = 0; j < sizeTab; j++) {
 			if (tab[i][j]) cont++;
@@ -81,15 +79,22 @@ int trocaJogador(int jogador) {
 }
 
 
-string criaEstado(int i = -1, int j = -1, int jogador) {
+string criaEstado(int y = -1, int x = -1, int jogador = 0) {
 	// criar a string que representa o nosso tabuleiro
-	if (i == -1) {
-		// apenas pega o estado atual
-	}	 else {
-		
+	string resultado;
+	// constroi a string atual
+  for(int i = 0; i < sizeTab; i++){
+	  for(int j = 0; j < sizeTab; j++){
+      if(tab[i][j] == xis) resultado += "x";
+      else if(tab[i][j] == bola) resultado += "o";
+      else resultado += ".";
+    }
+  }
+  if (y != -1) {
+    resultado[y*sizeTab+x] = (jogador == xis) ? 'x' : 'o';
 	}
 
-	return "";
+	return resultado;
 }
 
 /*
@@ -115,20 +120,25 @@ void print() {
 	Gera os estados com uma arvore de recursao
 */
 int constroiTree(int jogador) {
-	int resultado, iOtimo, jOtimo, estado;	
-	print();
-	
+	int resultado, iOtimo, jOtimo, estado;
+  
 	estado = verificaGanhador();
 	if (estado == ganhaBola) {
-		cout << "O ganhou!!" << endl;
+		//cout << "O ganhou!!" << endl;
 		return 1;
 	}
 	if (estado == ganhaX) {
-		cout << "X ganhou!!" << endl;
+		//cout << "X ganhou!!" << endl;
 		return -1;
 	}
 	if (impossivelJogar()) {
 		return 0;
+	}
+
+	string estadoAtual = criaEstado();
+	map<pair<string, int>, Estado>::iterator tmp = utilidade.find(make_pair(estadoAtual, jogador));
+	if (tmp != utilidade.end()) {
+		return tmp->second.resultado;
 	}
 
 	if (jogador == xis) {
@@ -137,7 +147,7 @@ int constroiTree(int jogador) {
 		resultado = 1;
 	}
 
-	for (int i = 0; i < sizeTab; i++) {
+  for (int i = 0; i < sizeTab; i++) {
 		for (int j = 0; j < sizeTab; j++) {
 			if (!tab[i][j]) {
 				tab[i][j] = jogador;
@@ -170,16 +180,46 @@ int constroiTree(int jogador) {
 		}
 	}
 
-	string estadoAtual = criaEstado();
-	string novoEstado = criaEstado(iOtimo, jOtimo);
-	utilidade.insert(make_pair(Estado(estadoAtual, jogador), Estado(novoEstado, trocaJogador(jogador))));
+  string novoEstado = criaEstado(iOtimo, jOtimo, jogador);
+	utilidade.insert(make_pair(make_pair(estadoAtual, jogador), Estado(novoEstado, trocaJogador(jogador), resultado, iOtimo, jOtimo)));
+	return resultado;
 }
 
-int main () {
+
+int jogo(int jogador){
+	int i, j, ganhador;
+	string estado;
+	while(1){
+		cout << jogador << endl;
+		print();
+		ganhador = verificaGanhador();
+		if (ganhador) return ganhador == ganhaBola ? ganhaBola : ganhaX;
+		if (impossivelJogar()) return 0;			
+		if(jogador == 1){	
+			cout << "Escolha uma linha e uma coluna do tabuleiro (linha coluna): ";
+			cin >> i >> j;
+			tab[--i][--j] = bola;
+		}else{
+			estado = criaEstado();
+			map<pair<string, int>, Estado>::iterator tmp = utilidade.find(make_pair(estado, jogador));
+			int ii = tmp->second.i; 
+			int jj = tmp->second.j;
+			cout << ii << ' ' << jj << endl << estado << endl;
+			tab[ii][jj] = xis;
+		}
+		jogador = !jogador;
+	}
 	
+}
+
+
+int main () {
+		
 
 	memset(tab, 0, sizeof tab);
 	constroiTree(xis);
+	
+	jogo(1);
 
 	return 0;
 }
