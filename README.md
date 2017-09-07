@@ -7,3 +7,8 @@ Inteligência artificial<br/>
 ## Autores
 * Higor Amorim
 * Matheus Rosa
+
+## Executar no linux
+* No diretório do projeto:
+* Compilar: g++ jogoVelha.cpp
+* Executar: ./a.out

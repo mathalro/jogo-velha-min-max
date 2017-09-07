@@ -1,6 +1,10 @@
 /*
-	Representação de bola: 30
-	Representação de X: 1
+ =======================================================
+|          Engenharia de Computacao - CEFET-MG          |
+|                 Inteligencia Artificial               |
+| Implementacao do algoritmo MaxMin para Jogo da Velha  |
+|	             Higor Coimbra - Matheus Rosa             |
+ =======================================================
 */
 
 #include <iostream>
@@ -8,6 +12,9 @@
 #include <cstdio>
 #include <map>
 #include <unistd.h>
+
+#define tabulacao printf("\t\t\t\t\t")
+#define tabulacao2 printf("\t\t\t\t")
 
 using namespace std;
 
@@ -22,6 +29,7 @@ const int sizeTab = 3;
 const int contGanhaBola = 30, contGanhaX = 3;
 const int ganhaBola = 1, ganhaX = 2;
 const int bola = 10, xis = 1;
+const int pc = 0, play = 1;
 
 map<pair<int, string>, Estado> utilidade;
 
@@ -98,18 +106,29 @@ string criaEstado(int y = -1, int x = -1, int jogador = 0) {
 	Imprime o tabuleiro atual
 */
 void print() {
-	puts("");
+	system("clear");
+	puts("Higor Coimbra ----------------- Jogo da Velha - CEFET-MG -------------------- Matheus Rosa\n");
 	for (int i = 0; i < sizeTab; i++) {
+		tabulacao;
 		for (int j = 0; j < sizeTab; j++) {
 			if (tab[i][j] == bola) {
-				printf("o ");
+				printf(" o");
 			} else if (tab[i][j] == xis){
-				printf("x ");
+				printf(" x");
 			} else {
-				printf(". ");
+				printf("  ");
 			}
-		}puts("");
+			if (j < sizeTab-1) {
+				printf(" |");		
+			}
+		}
+		puts("");
+		if (i < sizeTab-1) {
+			tabulacao;
+			printf("-----------\n");
+		}
 	}
+	puts("");
 }
 
 
@@ -124,6 +143,7 @@ int constroiTree(int jogador) {
 		return 0;
 	}
 
+	// Programacao dinamica para otimizar a geracao dos estados. Caso um estado ja tenha sido calculado, usa-se este valor que ja foi calculado
 	string estadoAtual = criaEstado();	
 	map<pair<int, string>, Estado>::iterator tmp = utilidade.find(make_pair(jogador, estadoAtual));
 	if (tmp != utilidade.end()) {
@@ -136,6 +156,7 @@ int constroiTree(int jogador) {
 		resultado = 1;
 	}
 
+	// Testa todas as escolhas
   for (int i = 0; i < sizeTab; i++) {
 		for (int j = 0; j < sizeTab; j++) {
 			if (!tab[i][j]) {
@@ -181,44 +202,121 @@ int constroiTree(int jogador) {
 		}
 	}
 
+	// Salva um novo estado com o resultado da melhor escolha para o min ou para o max
 	string novoEstado = criaEstado(iOtimo, jOtimo, jogador);
 	utilidade.insert(make_pair(make_pair(jogador, estadoAtual), Estado(novoEstado, trocaJogador(jogador), resultado, iOtimo, jOtimo)));
 	return resultado;
 }
 
-
-int jogo(int jogador){
-	int i, j, ganhador;
+/*
+	Funcao que controla um jogo atual
+*/
+int jogo(int jogadorAtual){
+	int ganhador, jogador = xis;
+	int i, j;
+	char ii, jj;
 	string estado;
 	while(1){
 		print();
 		ganhador = verificaGanhador();
 		if (ganhador) return ganhador == ganhaBola ? ganhaBola : ganhaX;
-		if (impossivelJogar()) return 0;			
-		if(jogador == bola){	
-			cout << "Escolha uma linha e uma coluna do tabuleiro (linha coluna): ";
-			cin >> i >> j;
-			tab[--i][--j] = bola;
-		}else {
+		if (impossivelJogar()) return 0;
+
+		if (jogadorAtual == play) {
+			bool pode = false;
+			while (!pode) {
+				tabulacao2;
+				cout << "Escolha a linha que deseja marcar: ";
+				cin >> ii;
+				tabulacao2;
+				cout << "Escolha a coluna que deseja marcar: ";
+				cin >> jj;
+				i = ii-'0';
+				j = jj-'0';
+				if (i > sizeTab || j > sizeTab || i <= 0 || j <= 0) {
+					print();
+					tabulacao2;
+					cout << "Esta posicao não existe!" << endl;
+				} else if (tab[i-1][j-1]) {
+					print();
+					tabulacao2;
+					cout << "Esta posicao ja esta ocupada! " << endl;
+				} else {
+					pode = true;
+				}
+			}
+		} else {
+			tabulacao2;
+			cout << "Aguarde sua vez ! " << endl;
+			sleep(1);
 			estado = criaEstado();
 			map<pair<int, string>, Estado>::iterator tmp = utilidade.find(make_pair(jogador, estado));
-			int ii = tmp->second.i; 
-			int jj = tmp->second.j;
-			tab[ii][jj] = xis;
+			i = tmp->second.i;
+			j = tmp->second.j;
+			i++; j++;
 		}
+	
+		if(jogador == bola) {
+			tab[--i][--j] = bola;
+		} else {
+			tab[--i][--j] = xis;
+		}
+
 		jogador = trocaJogador(jogador);
+		jogadorAtual = !jogadorAtual;
 	}
 	
 }
 
+/*
+	Funcao que comeca um novo jogo
+*/
+void iniciarJogo() {
+	int primeiro, ganhador;
+	bool jogando = true;
+	char c;
+	while (jogando) {
+		int aleatorio = rand()%100;
+		cout << aleatorio << endl;	
+		if (aleatorio >= 50) {
+			primeiro = play;
+		} else {
+			primeiro = pc;
+		}
+
+		ganhador = jogo(primeiro);
+		tabulacao2;
+		if (ganhador == ganhaBola) {
+			if (primeiro == pc) {
+				cout << "Parabéns! Você venceu. " << endl;
+			} else {
+				cout << "Você perdeu!" << endl;
+			}
+		} else if (ganhador == ganhaX) {
+			if (primeiro == pc) {
+				cout << "Você perdeu!" << endl;
+			} else {
+				cout << "Parabéns! Você venceu. " << endl;
+			}
+		} else {
+			cout << "Deu Velha!" << endl;
+		}
+		
+		tabulacao2;
+		cout << "Deseja jogar novamente? (Y/N): ";
+		cin >> c;
+		if (c != 'Y' && c != 'y') {
+			jogando = false;
+		}	
+		memset(tab, 0, sizeof tab);
+	}
+}
 
 int main () {
 		
-
-	memset(tab, 0, sizeof tab);
+	srand(time(NULL));
 	constroiTree(xis);
 
-	jogo(xis);
-
+	iniciarJogo();
 	return 0;
 }
